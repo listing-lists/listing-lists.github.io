@@ -56,10 +56,52 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
 .add-input::placeholder{color:var(--muted);opacity:.5}
 .add-extras{display:flex;gap:8px}
 .add-qty{width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
-.add-cat,.add-nick{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
+.add-cat-wrap{flex:1;position:relative}
+.add-cat-btn{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:4px;transition:border-color .2s}
+.add-cat-btn:focus,.add-cat-btn.open{border-color:var(--accent)}
+.add-cat-arrow{flex-shrink:0;transition:transform .2s;color:var(--muted)}
+.add-cat-btn.open .add-cat-arrow{transform:rotate(180deg)}
+.add-cat-dropdown{position:absolute;bottom:calc(100% + 6px);left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;z-index:200;box-shadow:var(--shadow);max-height:220px;overflow-y:auto;display:none}
+.add-cat-dropdown.open{display:block;animation:slideUp .15s cubic-bezier(.16,1,.3,1)}
+.add-cat-option{padding:10px 14px;font-size:14px;cursor:pointer;color:var(--text);transition:background .15s;display:flex;align-items:center;gap:8px}
+.add-cat-option:hover{background:rgba(255,107,53,.12)}
+.add-cat-option.selected{color:var(--accent)}
+.add-cat-option.new-cat{color:var(--accent2);border-top:1px solid var(--border);font-style:italic}
+.add-nick{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
 .add-submit{width:46px;height:46px;background:var(--accent);border:none;border-radius:10px;color:white;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,background .2s;flex-shrink:0}
 .add-submit:hover{transform:scale(1.05);background:#ff8c5a}
 .add-submit:active{transform:scale(.95)}
+/* Category header action buttons */
+.category-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.category-label-text{flex:1;display:flex;align-items:center;gap:6px}
+.category-label-text::after{content:'';flex:1;height:1px;background:var(--border)}
+.cat-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.cat-btn{width:26px;height:26px;border:none;background:none;color:var(--muted);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;padding:0;transition:background .15s,color .15s}
+.cat-btn:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.cat-btn.del:hover{background:rgba(255,80,80,.15);color:#ff8080}
+.cat-btn svg{width:14px;height:14px;flex-shrink:0}
+/* Drag and drop */
+.item-card{cursor:grab}
+.item-card.dragging{opacity:.4;cursor:grabbing}
+.item-card.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px rgba(255,107,53,.3)}
+.drop-zone{height:4px;border-radius:4px;background:var(--accent);opacity:0;transition:opacity .15s;margin-bottom:8px}
+.drop-zone.active{opacity:1}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:400;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:100%;max-width:360px;transform:translateY(16px) scale(.97);transition:transform .25s cubic-bezier(.16,1,.3,1);box-shadow:var(--shadow)}
+.modal-overlay.open .modal-card{transform:none}
+.modal-title{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin-bottom:20px}
+.modal-group{margin-bottom:14px}
+.modal-label{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;display:block}
+.modal-input{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s}
+.modal-input:focus{border-color:var(--accent)}
+.modal-btns{display:flex;gap:10px;margin-top:20px}
+.modal-btn{flex:1;padding:13px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:all .15s}
+.modal-btn.cancel{background:var(--surface2);color:var(--muted)}
+.modal-btn.cancel:hover{color:var(--text)}
+.modal-btn.confirm{background:var(--accent);color:white;box-shadow:0 4px 16px rgba(255,107,53,.35)}
+.modal-btn.confirm:hover{background:#ff8c5a}
 .list-content{flex:1;padding:0 20px;overflow-y:auto;padding-bottom:8px}
 .filter-row{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;flex-wrap:nowrap}
 .filter-row::-webkit-scrollbar{display:none}
@@ -68,8 +110,7 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
 .clear-checked-btn{padding:7px 16px;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.2);border-radius:20px;color:#ff8080;font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
 .clear-checked-btn:hover{background:rgba(255,80,80,.2)}
 .category-group{margin-bottom:24px}
-.category-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.category-label::after{content:'';flex:1;height:1px;background:var(--border)}
+/* category-label defined above with .cat-actions */
 .item-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:all .25s cubic-bezier(.16,1,.3,1);animation:itemIn .35s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden}
 .item-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);border-radius:3px 0 0 3px;transform:scaleY(0);transition:transform .2s}
 .item-card:hover::before{transform:scaleY(1)}
@@ -172,9 +213,27 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
       </div>
       <div class="add-extras">
         <input class="add-qty" id="add-qty" placeholder="Qty" type="number" min="1" value="1"/>
-        <select class="add-cat" id="add-cat"><option>Produce</option><option>Dairy</option><option>Meat</option><option>Bakery</option><option>Frozen</option><option>Snacks</option><option>Drinks</option><option>Household</option><option selected>Other</option></select>
-        <input class="add-nick" id="add-nick" placeholder="Your name" type="text"/>
+        <div class="add-cat-wrap" id="cat-wrap">
+          <button class="add-cat-btn" id="cat-btn" type="button" onclick="toggleCatDropdown()">
+            <span id="cat-btn-label">Other</span>
+            <svg class="add-cat-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
+          </button>
+          <div class="add-cat-dropdown" id="cat-dropdown"></div>
+        </div>
+        <input class="add-nick" id="add-nick" placeholder="Your name" type="text" oninput="saveNick()"/>
       </div>
+    </div>
+  </div><!-- end add-bar -->
+</div><!-- end app-screen -->
+
+<!-- Generic modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal-card" id="modal-card">
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-body"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn confirm" id="modal-confirm">OK</button>
     </div>
   </div>
 </div>
@@ -183,11 +242,83 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
 const API="https://grocery-server-7oge.onrender.com";
 let token=null,familyName=null,items=[],activeFilter="all";
 
+// ── Category order ───────────────────────────────────────────────────────────
+const DEFAULT_CATS=['Produce','Dairy','Meat','Bakery','Frozen','Snacks','Drinks','Household','Other'];
+let categoryOrder=JSON.parse(localStorage.getItem('ll_cat_order')||'null')||[...DEFAULT_CATS];
+let selectedCat=categoryOrder[0]||'Other';
+function saveCatOrder(){localStorage.setItem('ll_cat_order',JSON.stringify(categoryOrder));try{fetch(`${API}/meta/catorder`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({order:categoryOrder})});}catch{}}
+
+// ── Nick (sender name) ───────────────────────────────────────────────────────
+function saveNick(){const v=document.getElementById('add-nick').value;if(v)localStorage.setItem('ll_nick',v);}
+function loadNick(){const n=localStorage.getItem('ll_nick');if(n){const el=document.getElementById('add-nick');if(el)el.value=n;}}
+
+// ── Custom category dropdown ─────────────────────────────────────────────────
+function buildCatDropdown(){
+  const dd=document.getElementById('cat-dropdown');
+  dd.innerHTML='';
+  categoryOrder.forEach(cat=>{
+    const opt=document.createElement('div');
+    opt.className='add-cat-option'+(cat===selectedCat?' selected':'');
+    opt.innerHTML=catEmoji(cat)+' '+esc(cat);
+    opt.onclick=()=>selectCat(cat);
+    dd.appendChild(opt);
+  });
+  const newOpt=document.createElement('div');
+  newOpt.className='add-cat-option new-cat';
+  newOpt.innerHTML='\uFF0B New category';
+  newOpt.onclick=()=>{closeCatDropdown();promptNewCategory();};
+  dd.appendChild(newOpt);
+}
+function toggleCatDropdown(){
+  const dd=document.getElementById('cat-dropdown');
+  const btn=document.getElementById('cat-btn');
+  const isOpen=dd.classList.contains('open');
+  if(isOpen){closeCatDropdown();}else{buildCatDropdown();dd.classList.add('open');btn.classList.add('open');}
+}
+function closeCatDropdown(){
+  document.getElementById('cat-dropdown').classList.remove('open');
+  document.getElementById('cat-btn').classList.remove('open');
+}
+function selectCat(cat){
+  selectedCat=cat;
+  document.getElementById('cat-btn-label').textContent=cat;
+  closeCatDropdown();
+}
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('cat-wrap');
+  if(wrap&&!wrap.contains(e.target))closeCatDropdown();
+});
+function promptNewCategory(){
+  openModal('New Category',
+    '<div class="modal-group"><label class="modal-label">Category Name</label><input class="modal-input" id="modal-newcat" placeholder="e.g. Beverages" type="text"/></div>',
+    ()=>{
+      const name=document.getElementById('modal-newcat').value.trim();
+      if(!name)return;
+      if(!categoryOrder.includes(name)){categoryOrder.push(name);saveCatOrder();}
+      selectCat(name);buildCatDropdown();renderItems();closeModal();
+    }
+  );
+  setTimeout(()=>document.getElementById('modal-newcat')?.focus(),50);
+}
+
+// ── Modal helpers ────────────────────────────────────────────────────────────
+function openModal(title,bodyHTML,onConfirm){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=bodyHTML;
+  document.getElementById('modal-confirm').onclick=onConfirm;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+
 window.addEventListener('load',()=>{
   token=localStorage.getItem('ll_token');
   familyName=localStorage.getItem('ll_family');
   if(token&&familyName){showApp();loadItems();}else{hide('loading');}
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+  loadNick();
+  buildCatDropdown();
+  document.getElementById('cat-btn-label').textContent=selectedCat;
 });
 
 function switchTab(tab){
@@ -238,14 +369,19 @@ async function loadItems(){
   try{
     const r=await fetch(`${API}/items`,{headers:{Authorization:`Bearer ${token}`}});
     if(r.status===401){logout();return;}
-    items=await r.json();renderItems();
+    items=await r.json();
+    try{
+      const ro=await fetch(`${API}/meta/catorder`,{headers:{Authorization:`Bearer ${token}`}});
+      if(ro.ok){const od=await ro.json();if(od.order&&od.order.length){categoryOrder=od.order;localStorage.setItem('ll_cat_order',JSON.stringify(categoryOrder));}}
+    }catch{}
+    renderItems();
   }catch{toast('Could not load items');}
 }
 
 async function addItem(){
   const name=val('add-item').trim();
   if(!name)return;
-  const qty=parseInt(val('add-qty'))||1,category=val('add-cat'),addedBy=val('add-nick')||'Someone';
+  const qty=parseInt(val('add-qty'))||1,category=selectedCat,addedBy=val('add-nick')||'Someone';
   try{
     const r=await fetch(`${API}/items`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({item:name,qty,category,addedBy})});
     const d=await r.json();
@@ -253,8 +389,30 @@ async function addItem(){
     items.push(d.item);
     document.getElementById('add-item').value='';
     document.getElementById('add-qty').value=1;
-    renderItems();toast(`Added ${name}`);
+    if(!categoryOrder.includes(category)){categoryOrder.push(category);saveCatOrder();}
+    buildCatDropdown();renderItems();toast('Added '+name);
   }catch{toast('Failed to add item');}
+}
+
+function promptAddToCategory(cat){
+  openModal('Add to '+cat,
+    '<div class="modal-group"><label class="modal-label">Item Name</label><input class="modal-input" id="modal-item" placeholder="e.g. Milk" type="text"/></div>'+
+    '<div class="modal-group"><label class="modal-label">Quantity</label><input class="modal-input" id="modal-qty" type="number" min="1" value="1"/></div>',
+    async ()=>{
+      const name=document.getElementById('modal-item').value.trim();
+      if(!name)return;
+      const qty=parseInt(document.getElementById('modal-qty').value)||1;
+      const addedBy=val('add-nick')||'Someone';
+      closeModal();
+      try{
+        const r=await fetch(`${API}/items`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({item:name,qty,category:cat,addedBy})});
+        const d=await r.json();
+        if(!r.ok)return toast(d.error);
+        items.push(d.item);renderItems();toast('Added '+name);
+      }catch{toast('Failed to add item');}
+    }
+  );
+  setTimeout(()=>document.getElementById('modal-item')?.focus(),50);
 }
 
 async function toggleItem(id){
@@ -295,44 +453,171 @@ function setFilter(cat){
   renderItems();
 }
 
+// ── Category ordering ────────────────────────────────────────────────────────
+function moveCatUp(cat){
+  const idx=categoryOrder.indexOf(cat);
+  if(idx<=0)return;
+  [categoryOrder[idx-1],categoryOrder[idx]]=[categoryOrder[idx],categoryOrder[idx-1]];
+  saveCatOrder();buildCatDropdown();renderItems();
+}
+function moveCatDown(cat){
+  const idx=categoryOrder.indexOf(cat);
+  if(idx<0||idx>=categoryOrder.length-1)return;
+  [categoryOrder[idx+1],categoryOrder[idx]]=[categoryOrder[idx],categoryOrder[idx+1]];
+  saveCatOrder();buildCatDropdown();renderItems();
+}
+function confirmDeleteCategory(cat){
+  openModal('Delete Category',
+    '<p style="color:var(--muted);font-size:14px">Are you sure you want to delete the <strong style="color:var(--text)">'+esc(cat)+'</strong> category?<br><br>Items inside it will be moved to <strong style="color:var(--accent2)">Other</strong>.</p>',
+    async ()=>{
+      const affected=items.filter(i=>i.category===cat);
+      for(const item of affected){
+        try{await fetch(`${API}/items/${item.id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({category:'Other'})});item.category='Other';}catch{}
+      }
+      categoryOrder=categoryOrder.filter(c=>c!==cat);
+      if(!categoryOrder.includes('Other'))categoryOrder.push('Other');
+      saveCatOrder();
+      if(selectedCat===cat){selectedCat='Other';document.getElementById('cat-btn-label').textContent='Other';}
+      if(activeFilter===cat)activeFilter='all';
+      buildCatDropdown();renderItems();closeModal();toast('Category deleted');
+    }
+  );
+}
+
+// ── Drag and drop ─────────────────────────────────────────────────────────────
+let dragItem=null,dragFromCat=null;
+function makeDraggable(card,item){
+  card.draggable=true;
+  card.addEventListener('dragstart',e=>{
+    dragItem=item;dragFromCat=item.category;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',String(item.id));
+  });
+  card.addEventListener('dragend',()=>{
+    card.classList.remove('dragging');
+    document.querySelectorAll('.item-card.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    dragItem=null;dragFromCat=null;
+  });
+  card.addEventListener('dragover',e=>{
+    e.preventDefault();e.dataTransfer.dropEffect='move';
+    document.querySelectorAll('.item-card.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    if(dragItem&&item.id!==dragItem.id)card.classList.add('drag-over');
+  });
+  card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
+  card.addEventListener('drop',e=>{
+    e.preventDefault();card.classList.remove('drag-over');
+    if(!dragItem||item.id===dragItem.id)return;
+    const fromIdx=items.findIndex(i=>i.id===dragItem.id);
+    const toIdx=items.findIndex(i=>i.id===item.id);
+    if(fromIdx<0||toIdx<0)return;
+    const moved=items.splice(fromIdx,1)[0];
+    const oldCat=moved.category;
+    moved.category=item.category;
+    items.splice(toIdx,0,moved);
+    renderItems();saveItemOrder();
+    if(moved.category!==oldCat)fetch(`${API}/items/${moved.id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({category:moved.category})}).catch(()=>{});
+  });
+}
+function makeCatDropTarget(groupEl,cat){
+  groupEl.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';});
+  groupEl.addEventListener('drop',e=>{
+    e.preventDefault();
+    if(!dragItem)return;
+    const fromIdx=items.findIndex(i=>i.id===dragItem.id);
+    if(fromIdx<0)return;
+    const moved=items.splice(fromIdx,1)[0];
+    const oldCat=moved.category;
+    moved.category=cat;
+    items.push(moved);
+    renderItems();saveItemOrder();
+    if(moved.category!==oldCat)fetch(`${API}/items/${moved.id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({category:moved.category})}).catch(()=>{});
+  });
+}
+async function saveItemOrder(){
+  const order=items.map(i=>i.id);
+  try{await fetch(`${API}/items/order`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({order})});}catch{}
+}
+
 function renderItems(){
   const filtered=activeFilter==='all'?items:items.filter(i=>i.category===activeFilter);
-  const sorted=[...filtered.filter(i=>!i.checked),...filtered.filter(i=>i.checked)];
   document.getElementById('stat-total').textContent=items.length;
   document.getElementById('stat-done').textContent=items.filter(i=>i.checked).length;
   document.getElementById('stat-left').textContent=items.filter(i=>!i.checked).length;
-  const cats=[...new Set(items.map(i=>i.category))];
+  // rebuild filter chips
   const row=document.getElementById('filter-row');
-  const existing=[...row.querySelectorAll('.filter-chip')].map(c=>c.dataset.cat);
-  cats.forEach(cat=>{
-    if(!existing.includes(cat)){
-      const chip=document.createElement('button');
-      chip.className='filter-chip';chip.dataset.cat=cat;chip.textContent=cat;
-      chip.onclick=()=>setFilter(cat);
-      row.insertBefore(chip,row.querySelector('.clear-checked-btn'));
-    }
+  const clearBtn=row.querySelector('.clear-checked-btn');
+  row.querySelectorAll('.filter-chip').forEach(c=>c.remove());
+  const allChip=document.createElement('button');
+  allChip.className='filter-chip'+(activeFilter==='all'?' active':'');
+  allChip.dataset.cat='all';allChip.textContent='All';allChip.onclick=()=>setFilter('all');
+  row.insertBefore(allChip,clearBtn);
+  const usedCats=[...new Set(items.map(i=>i.category))];
+  const orderedUsed=[...categoryOrder.filter(c=>usedCats.includes(c)),...usedCats.filter(c=>!categoryOrder.includes(c))];
+  orderedUsed.forEach(cat=>{
+    const chip=document.createElement('button');
+    chip.className='filter-chip'+(activeFilter===cat?' active':'');
+    chip.dataset.cat=cat;chip.textContent=cat;chip.onclick=()=>setFilter(cat);
+    row.insertBefore(chip,clearBtn);
   });
-  document.getElementById('empty-state').classList.toggle('show',sorted.length===0);
+  // build groups
   const groups={};
-  sorted.forEach(item=>{if(!groups[item.category])groups[item.category]=[];groups[item.category].push(item);});
+  orderedUsed.forEach(c=>groups[c]=[]);
+  filtered.forEach(item=>{if(!groups[item.category])groups[item.category]=[];groups[item.category].push(item);});
+  document.getElementById('empty-state').classList.toggle('show',filtered.length===0);
   const list=document.getElementById('items-list');
   list.innerHTML='';
-  Object.entries(groups).forEach(([cat,catItems])=>{
-    const group=document.createElement('div');group.className='category-group';
-    group.innerHTML=`<div class="category-label">${catEmoji(cat)} ${cat}</div>`;
-    catItems.forEach(item=>{
+  orderedUsed.forEach(cat=>{
+    const catItems=groups[cat];
+    if(!catItems||catItems.length===0)return;
+    const sorted=[...catItems.filter(i=>!i.checked),...catItems.filter(i=>i.checked)];
+    const group=document.createElement('div');
+    group.className='category-group';
+    group.dataset.cat=cat;
+    const catIdx=categoryOrder.indexOf(cat);
+    const canUp=catIdx>0;
+    const canDown=catIdx<categoryOrder.length-1;
+    const header=document.createElement('div');
+    header.className='category-label';
+    const escapedCat=esc(cat);
+    header.innerHTML=
+      '<div class="category-label-text">'+catEmoji(cat)+' '+escapedCat+'</div>'+
+      '<div class="cat-actions">'+
+      '<button class="cat-btn" title="Add item" onclick="promptAddToCategory(\u0027'+escapedCat+'\u0027)">'+
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>'+
+      '</button>'+
+      '<button class="cat-btn" title="Move up" '+(canUp?'':'disabled style="opacity:.3;cursor:default"')+' onclick="'+(canUp?'moveCatUp(\u0027'+escapedCat+'\u0027)':'')+'">'+
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 6 12 10"/></svg>'+
+      '</button>'+
+      '<button class="cat-btn" title="Move down" '+(canDown?'':'disabled style="opacity:.3;cursor:default"')+' onclick="'+(canDown?'moveCatDown(\u0027'+escapedCat+'\u0027)':'')+'">'+
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>'+
+      '</button>'+
+      '<button class="cat-btn del" title="Delete category" onclick="confirmDeleteCategory(\u0027'+escapedCat+'\u0027)">'+
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>'+
+      '</button>'+
+      '</div>';
+    group.appendChild(header);
+    sorted.forEach(item=>{
       const card=document.createElement('div');
-      card.className=`item-card${item.checked?' checked':''}`;
-      card.innerHTML=`<div class="item-check" onclick="toggleItem(${item.id})">${item.checked?'✓':''}</div><div class="item-info"><div class="item-name">${esc(item.name)}</div><div class="item-meta"><span>by ${esc(item.addedBy)}</span><span>${timeAgo(item.addedAt)}</span></div></div><div class="item-qty-badge">×${item.qty}</div><button class="item-delete" onclick="deleteItem(${item.id})">✕</button>`;
+      card.className='item-card'+(item.checked?' checked':'');
+      card.dataset.id=item.id;
+      const check=document.createElement('div');check.className='item-check';if(item.checked)check.textContent='\u2713';check.onclick=()=>toggleItem(item.id);
+      const info=document.createElement('div');info.className='item-info';
+      info.innerHTML='<div class="item-name">'+esc(item.name)+'</div><div class="item-meta"><span>by '+esc(item.addedBy)+'</span><span>'+timeAgo(item.addedAt)+'</span></div>';
+      const qty=document.createElement('div');qty.className='item-qty-badge';qty.textContent='\xD7'+item.qty;
+      const del=document.createElement('button');del.className='item-delete';del.innerHTML='\u2715';del.onclick=()=>deleteItem(item.id);
+      card.appendChild(check);card.appendChild(info);card.appendChild(qty);card.appendChild(del);
+      makeDraggable(card,item);
       group.appendChild(card);
     });
+    makeCatDropTarget(group,cat);
     list.appendChild(group);
   });
 }
 
 function catEmoji(c){return{Produce:'🥦',Dairy:'🥛',Meat:'🥩',Bakery:'🍞',Frozen:'🧊',Snacks:'🍿',Drinks:'🥤',Household:'🧹',Other:'📦'}[c]||'📦';}
 function timeAgo(iso){const d=Date.now()-new Date(iso);if(d<60000)return'just now';if(d<3600000)return`${Math.floor(d/60000)}m ago`;if(d<86400000)return`${Math.floor(d/3600000)}h ago`;return`${Math.floor(d/86400000)}d ago`;}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');}
 function val(id){return document.getElementById(id)?.value||'';}
 function hide(id){const el=document.getElementById(id);if(el)el.style.display='none';}
 let toastTimer;
