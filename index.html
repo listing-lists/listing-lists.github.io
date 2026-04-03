@@ -238,15 +238,28 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js"></script>
 <script>
-const API="https://grocery-server-7oge.onrender.com";
-let token=null,familyName=null,items=[],activeFilter="all";
+// ── Firebase Config & Init ───────────────────────────────────────────────────
+const firebaseConfig={apiKey:"AIzaSyDFChem-HuTxBmbVvope73X_eQbUd9ngbM",authDomain:"listing-lists.firebaseapp.com",projectId:"listing-lists",storageBucket:"listing-lists.firebasestorage.app",messagingSenderId:"1041641242612",appId:"1:1041641242612:web:7f40506f0cb3b15e8383a1",measurementId:"G-SFEXGEHVJ9"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
+
+let currentUser=null,familyName=null,items=[],activeFilter="all";
 
 // ── Category order ───────────────────────────────────────────────────────────
 const DEFAULT_CATS=['Produce','Dairy','Meat','Bakery','Frozen','Snacks','Drinks','Household','Other'];
 let categoryOrder=JSON.parse(localStorage.getItem('ll_cat_order')||'null')||[...DEFAULT_CATS];
 let selectedCat=categoryOrder[0]||'Other';
-function saveCatOrder(){localStorage.setItem('ll_cat_order',JSON.stringify(categoryOrder));try{fetch(`${API}/meta/catorder`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({order:categoryOrder})});}catch{}}
+function saveCatOrder(){
+  localStorage.setItem('ll_cat_order',JSON.stringify(categoryOrder));
+  if(currentUser&&familyName){
+    db.collection('families').doc(familyName).update({categoryOrder}).catch(e=>console.error(e));
+  }
+}
 
 // ── Nick (sender name) ───────────────────────────────────────────────────────
 function saveNick(){const v=document.getElementById('add-nick').value;if(v)localStorage.setItem('ll_nick',v);}
@@ -291,7 +304,7 @@ document.addEventListener('click',e=>{
 function promptNewCategory(){
   openModal('New Category',
     '<div class="modal-group"><label class="modal-label">Category Name</label><input class="modal-input" id="modal-newcat" placeholder="e.g. Beverages" type="text"/></div>',
-    ()=>{
+    async ()=>{
       const name=document.getElementById('modal-newcat').value.trim();
       if(!name)return;
       if(!categoryOrder.includes(name)){categoryOrder.push(name);saveCatOrder();}
@@ -312,13 +325,21 @@ function closeModal(){document.getElementById('modal-overlay').classList.remove(
 function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
 
 window.addEventListener('load',()=>{
-  token=localStorage.getItem('ll_token');
-  familyName=localStorage.getItem('ll_family');
-  if(token&&familyName){showApp();loadItems();}else{hide('loading');}
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
   loadNick();
   buildCatDropdown();
   document.getElementById('cat-btn-label').textContent=selectedCat;
+});
+
+auth.onAuthStateChanged(async(user)=>{
+  if(user){
+    currentUser=user;
+    familyName=localStorage.getItem('ll_family')||user.uid;
+    showApp();
+    await loadItems();
+  }else{
+    hide('loading');
+  }
 });
 
 function switchTab(tab){
@@ -330,32 +351,34 @@ function switchTab(tab){
 async function login(){
   const name=val('login-name'),pass=val('login-pass');
   if(!name||!pass)return showError('login-error','Fill in all fields');
+  const email=name+'@listing-lists.local';
   try{
-    const r=await fetch(`${API}/family/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,passcode:pass})});
-    const d=await r.json();
-    if(!r.ok)return showError('login-error',d.error);
-    saveAuth(d.token,d.familyName);showApp();loadItems();
-  }catch{showError('login-error','Connection failed');}
+    await auth.signInWithEmailAndPassword(email,pass);
+  }catch(e){showError('login-error',e.message);}
 }
 
 async function createFamily(){
   const name=val('create-name'),pass=val('create-pass');
   if(!name||!pass)return showError('create-error','Fill in all fields');
+  const email=name+'@listing-lists.local';
   try{
-    const r=await fetch(`${API}/family/create`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,passcode:pass})});
-    const d=await r.json();
-    if(!r.ok)return showError('create-error',d.error);
-    saveAuth(d.token,name);showApp();loadItems();
-  }catch{showError('create-error','Connection failed');}
+    const res=await auth.createUserWithEmailAndPassword(email,pass);
+    const DEFAULT_CATS=['Produce','Dairy','Meat','Bakery','Frozen','Snacks','Drinks','Household','Other'];
+    await db.collection('families').doc(name).set({owner:res.user.uid,members:[res.user.uid],categoryOrder:DEFAULT_CATS,createdAt:new Date()});
+    localStorage.setItem('ll_family',name);
+    familyName=name;
+  }catch(e){showError('create-error',e.message);}
 }
 
-function saveAuth(t,f){token=t;familyName=f;localStorage.setItem('ll_token',t);localStorage.setItem('ll_family',f);}
-
 function logout(){
-  token=null;familyName=null;
-  localStorage.removeItem('ll_token');localStorage.removeItem('ll_family');
-  document.getElementById('auth-screen').classList.add('active');
-  document.getElementById('app-screen').classList.remove('active');
+  auth.signOut().then(()=>{
+    currentUser=null;
+    familyName=null;
+    localStorage.removeItem('ll_family');
+    items=[];
+    document.getElementById('auth-screen').classList.add('active');
+    document.getElementById('app-screen').classList.remove('active');
+  });
 }
 
 function showApp(){
@@ -367,15 +390,14 @@ function showApp(){
 
 async function loadItems(){
   try{
-    const r=await fetch(`${API}/items`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r.status===401){logout();return;}
-    items=await r.json();
-    try{
-      const ro=await fetch(`${API}/meta/catorder`,{headers:{Authorization:`Bearer ${token}`}});
-      if(ro.ok){const od=await ro.json();if(od.order&&od.order.length){categoryOrder=od.order;localStorage.setItem('ll_cat_order',JSON.stringify(categoryOrder));}}
-    }catch{}
+    const snap=await db.collection('families').doc(familyName).collection('items').orderBy('order','asc').get();
+    items=snap.docs.map(doc=>({id:doc.id,...doc.data()}));
+    const familySnap=await db.collection('families').doc(familyName).get();
+    if(familySnap.exists&&familySnap.data().categoryOrder){
+      categoryOrder=familySnap.data().categoryOrder;
+    }
     renderItems();
-  }catch{toast('Could not load items');}
+  }catch(e){console.error('Error loading items:',e);}
 }
 
 async function addItem(){
@@ -383,15 +405,15 @@ async function addItem(){
   if(!name)return;
   const qty=parseInt(val('add-qty'))||1,category=selectedCat,addedBy=val('add-nick')||'Someone';
   try{
-    const r=await fetch(`${API}/items`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({item:name,qty,category,addedBy})});
-    const d=await r.json();
-    if(!r.ok)return toast(d.error);
-    items.push(d.item);
+    const docRef=await db.collection('families').doc(familyName).collection('items').add({
+      name,qty,category,addedBy,checked:false,createdAt:new Date(),addedAt:new Date(),order:items.length
+    });
+    items.push({id:docRef.id,name,qty,category,addedBy,checked:false,createdAt:new Date(),addedAt:new Date()});
     document.getElementById('add-item').value='';
     document.getElementById('add-qty').value=1;
     if(!categoryOrder.includes(category)){categoryOrder.push(category);saveCatOrder();}
     buildCatDropdown();renderItems();toast('Added '+name);
-  }catch{toast('Failed to add item');}
+  }catch(e){toast('Failed to add item: '+e.message);}
 }
 
 function promptAddToCategory(cat){
@@ -405,11 +427,10 @@ function promptAddToCategory(cat){
       const addedBy=val('add-nick')||'Someone';
       closeModal();
       try{
-        const r=await fetch(`${API}/items`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({item:name,qty,category:cat,addedBy})});
-        const d=await r.json();
-        if(!r.ok)return toast(d.error);
-        items.push(d.item);renderItems();toast('Added '+name);
-      }catch{toast('Failed to add item');}
+        await db.collection('families').doc(familyName).collection('items').add({name,qty,category:cat,addedBy,checked:false,createdAt:new Date(),addedAt:new Date(),order:items.length});
+        await loadItems();
+        toast('Added '+name);
+      }catch(e){toast('Failed to add item: '+e.message);}
     }
   );
   setTimeout(()=>document.getElementById('modal-item')?.focus(),50);
@@ -417,27 +438,35 @@ function promptAddToCategory(cat){
 
 async function toggleItem(id){
   try{
-    const r=await fetch(`${API}/items/${id}/toggle`,{method:'PUT',headers:{Authorization:`Bearer ${token}`}});
-    const d=await r.json();
-    if(!r.ok)return;
-    const idx=items.findIndex(i=>i.id===id);
-    if(idx>-1)items[idx]=d.item;
-    renderItems();
-  }catch{}
+    const item=items.find(i=>i.id===id);
+    if(item){
+      const newChecked=!item.checked;
+      await db.collection('families').doc(familyName).collection('items').doc(id).update({checked:newChecked});
+      item.checked=newChecked;
+      renderItems();
+    }
+  }catch(e){console.error('Error toggling item:',e);}
 }
 
 async function deleteItem(id){
   try{
-    await fetch(`${API}/items/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}});
-    items=items.filter(i=>i.id!==id);renderItems();toast('Removed');
-  }catch{}
+    await db.collection('families').doc(familyName).collection('items').doc(id).delete();
+    items=items.filter(i=>i.id!==id);
+    renderItems();
+    toast('Removed');
+  }catch(e){console.error('Error deleting item:',e);}
 }
 
 async function clearChecked(){
   try{
-    await fetch(`${API}/items/checked/all`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}});
-    items=items.filter(i=>!i.checked);renderItems();toast('Cleared checked items');
-  }catch{}
+    const checked=items.filter(i=>i.checked);
+    for(const item of checked){
+      await db.collection('families').doc(familyName).collection('items').doc(item.id).delete();
+    }
+    items=items.filter(i=>!i.checked);
+    renderItems();
+    toast('Cleared checked items');
+  }catch(e){console.error('Error clearing checked:',e);}
 }
 
 async function refreshList(){
@@ -472,7 +501,10 @@ function confirmDeleteCategory(cat){
     async ()=>{
       const affected=items.filter(i=>i.category===cat);
       for(const item of affected){
-        try{await fetch(`${API}/items/${item.id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({category:'Other'})});item.category='Other';}catch{}
+        try{
+          await db.collection('families').doc(familyName).collection('items').doc(item.id).update({category:'Other'});
+          item.category='Other';
+        }catch(e){console.error(e);}
       }
       categoryOrder=categoryOrder.filter(c=>c!==cat);
       if(!categoryOrder.includes('Other'))categoryOrder.push('Other');
@@ -516,7 +548,7 @@ function makeDraggable(card,item){
     moved.category=item.category;
     items.splice(toIdx,0,moved);
     renderItems();saveItemOrder();
-    if(moved.category!==oldCat)fetch(`${API}/items/${moved.id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({category:moved.category})}).catch(()=>{});
+    if(moved.category!==oldCat)db.collection('families').doc(familyName).collection('items').doc(moved.id).update({category:moved.category}).catch(()=>{});
   });
 }
 function makeCatDropTarget(groupEl,cat){
@@ -531,12 +563,15 @@ function makeCatDropTarget(groupEl,cat){
     moved.category=cat;
     items.push(moved);
     renderItems();saveItemOrder();
-    if(moved.category!==oldCat)fetch(`${API}/items/${moved.id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({category:moved.category})}).catch(()=>{});
+    if(moved.category!==oldCat)db.collection('families').doc(familyName).collection('items').doc(moved.id).update({category:moved.category}).catch(()=>{});
   });
 }
 async function saveItemOrder(){
-  const order=items.map(i=>i.id);
-  try{await fetch(`${API}/items/order`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({order})});}catch{}
+  for(let i=0;i<items.length;i++){
+    try{
+      await db.collection('families').doc(familyName).collection('items').doc(items[i].id).update({order:i});
+    }catch(e){console.error(e);}
+  }
 }
 
 function renderItems(){
@@ -615,7 +650,6 @@ function renderItems(){
   });
 }
 
-function catEmoji(c){return{Produce:'🥦',Dairy:'🥛',Meat:'🥩',Bakery:'🍞',Frozen:'🧊',Snacks:'🍿',Drinks:'🥤',Household:'🧹',Other:'📦'}[c]||'📦';}
 function timeAgo(iso){const d=Date.now()-new Date(iso);if(d<60000)return'just now';if(d<3600000)return`${Math.floor(d/60000)}m ago`;if(d<86400000)return`${Math.floor(d/3600000)}h ago`;return`${Math.floor(d/86400000)}d ago`;}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');}
 function val(id){return document.getElementById(id)?.value||'';}
@@ -623,7 +657,7 @@ function hide(id){const el=document.getElementById(id);if(el)el.style.display='n
 let toastTimer;
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2500);}
 function showError(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4000);}
-setInterval(()=>{if(token)loadItems();},30000);
+setInterval(()=>{if(currentUser)loadItems();},30000);
 </script>
 </body>
 </html>

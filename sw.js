@@ -12,7 +12,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.url.includes('grocery-server-7oge.onrender.com')) return;
+  // Don't cache Firebase/Google API calls
+  if (e.request.url.includes('googleapis.com') || e.request.url.includes('firestore.googleapis.com')) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       const clone = res.clone();
