@@ -348,13 +348,20 @@ window.addEventListener('load',()=>{
   
   // Setup auth listener
   auth.onAuthStateChanged(async(user)=>{
-    console.log('🔐 Auth state changed:', user?.email || 'not logged in');
+    console.log('🔐 Auth state changed:', user?.isAnonymous ? 'anonymous' : 'not logged in');
     if(user){
       currentUser=user;
-      familyName=localStorage.getItem('ll_family')||user.uid;
-      console.log('👤 User logged in:', user.email, 'Family:', familyName);
-      showApp();
-      await loadItems();
+      familyName=localStorage.getItem('ll_family');
+      if(familyName){
+        console.log('👤 User logged in, Family:', familyName);
+        showApp();
+        await loadItems();
+      }else{
+        console.log('👤 Anon user but no family selected');
+        hide('loading');
+        document.getElementById('auth-screen').classList.add('active');
+        document.getElementById('app-screen').classList.remove('active');
+      }
     }else{
       console.log('👤 No user logged in');
       hide('loading');
@@ -372,15 +379,28 @@ function switchTab(tab){
 async function login(){
   const name=val('login-name'),pass=val('login-pass');
   if(!name||!pass)return showError('login-error','Fill in all fields');
-  const email=name+'@listing-lists.local';
   try{
-    console.log('📧 Logging in as:', email);
-    console.log('Auth state before login:', {authDomain: auth.auth.config.authDomain, apiKey: auth.auth.config.apiKey});
-    await auth.signInWithEmailAndPassword(email,pass);
-    console.log('✅ Login successful');
+    console.log('📧 Logging in to family:', name);
+    // Sign in anonymously first
+    await auth.signInAnonymously();
+    console.log('✅ Anon auth successful');
+    
+    // Check if family exists and passcode matches
+    const familySnap=await db.collection('families').doc(name).get();
+    if(!familySnap.exists()){
+      showError('login-error','Family not found');
+      return;
+    }
+    const familyData=familySnap.data();
+    if(familyData.passcode!==pass){
+      showError('login-error','Wrong passcode');
+      return;
+    }
+    console.log('✅ Passcode correct');
+    localStorage.setItem('ll_family',name);
+    familyName=name;
   }catch(e){
     console.error('❌ Login error:', e);
-    console.error('Full error object:', {code: e.code, message: e.message, customData: e.customData});
     showError('login-error',e.message);
   }
 }
@@ -388,14 +408,19 @@ async function login(){
 async function createFamily(){
   const name=val('create-name'),pass=val('create-pass');
   if(!name||!pass)return showError('create-error','Fill in all fields');
-  const email=name+'@listing-lists.local';
   try{
     console.log('👨‍👩‍👧‍👦 Creating family:', name);
-    const res=await auth.createUserWithEmailAndPassword(email,pass);
-    console.log('✅ User created:', res.user.uid);
+    // Sign in anonymously first
+    await auth.signInAnonymously();
+    console.log('✅ Anon auth successful');
+    
     const DEFAULT_CATS=['Produce','Dairy','Meat','Bakery','Frozen','Snacks','Drinks','Household','Other'];
     console.log('💾 Creating family document...');
-    await db.collection('families').doc(name).set({owner:res.user.uid,members:[res.user.uid],categoryOrder:DEFAULT_CATS,createdAt:new Date()});
+    await db.collection('families').doc(name).set({
+      passcode:pass,
+      categoryOrder:DEFAULT_CATS,
+      createdAt:new Date()
+    });
     console.log('✅ Family created');
     localStorage.setItem('ll_family',name);
     familyName=name;
