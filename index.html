@@ -245,11 +245,14 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
 // ── Firebase Config & Init ───────────────────────────────────────────────────
 const firebaseConfig={apiKey:"AIzaSyDFChem-HuTxBmbVvope73X_eQbUd9ngbM",authDomain:"listing-lists.firebaseapp.com",projectId:"listing-lists",storageBucket:"listing-lists.firebasestorage.app",messagingSenderId:"1041641242612",appId:"1:1041641242612:web:7f40506f0cb3b15e8383a1",measurementId:"G-SFEXGEHVJ9"};
 console.log('🔧 Initializing Firebase...');
+console.log('Config:', firebaseConfig);
 firebase.initializeApp(firebaseConfig);
 console.log('✅ Firebase initialized');
 const auth=firebase.auth();
 const db=firebase.firestore();
 console.log('✅ Auth and Firestore ready');
+console.log('Auth object:', auth);
+console.log('Current auth settings:', {currentUser: auth.currentUser, persistence: auth.persistence});
 
 // ── Helper functions (defined early so they can be used) ──────────────────────
 function catEmoji(c){return{Produce:'🥦',Dairy:'🥛',Meat:'🥩',Bakery:'🍞',Frozen:'🧊',Snacks:'🍿',Drinks:'🥤',Household:'🧹',Other:'📦'}[c]||'📦';}
@@ -372,10 +375,12 @@ async function login(){
   const email=name+'@listing-lists.local';
   try{
     console.log('📧 Logging in as:', email);
+    console.log('Auth state before login:', {authDomain: auth.auth.config.authDomain, apiKey: auth.auth.config.apiKey});
     await auth.signInWithEmailAndPassword(email,pass);
     console.log('✅ Login successful');
   }catch(e){
     console.error('❌ Login error:', e);
+    console.error('Full error object:', {code: e.code, message: e.message, customData: e.customData});
     showError('login-error',e.message);
   }
 }
