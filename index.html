@@ -238,17 +238,24 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore-compat.js"></script>
-<script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+<script type="module">
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
 // ── Firebase Config & Init ───────────────────────────────────────────────────
 const firebaseConfig={apiKey:"AIzaSyDFChem-HuTxBmbVvope73X_eQbUd9ngbM",authDomain:"listing-lists.firebaseapp.com",projectId:"listing-lists",storageBucket:"listing-lists.firebasestorage.app",messagingSenderId:"1041641242612",appId:"1:1041641242612:web:7f40506f0cb3b15e8383a1",measurementId:"G-SFEXGEHVJ9"};
 console.log('🔧 Initializing Firebase...');
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 console.log('✅ Firebase initialized');
-const auth=firebase.auth();
-const db=firebase.firestore();
+const auth=getAuth(app);
+const db=getFirestore(app);
 console.log('✅ Auth and Firestore ready');
 
 let currentUser=null,familyName=null,items=[],activeFilter="all";
@@ -260,7 +267,7 @@ let selectedCat=categoryOrder[0]||'Other';
 function saveCatOrder(){
   localStorage.setItem('ll_cat_order',JSON.stringify(categoryOrder));
   if(currentUser&&familyName){
-    db.collection('families').doc(familyName).update({categoryOrder}).catch(e=>console.error(e));
+    updateDoc(doc(db,'families',familyName),{categoryOrder}).catch(e=>console.error(e));
   }
 }
 
@@ -348,8 +355,7 @@ window.addEventListener('load',()=>{
       document.getElementById('auth-screen').classList.add('active');
       document.getElementById('app-screen').classList.remove('active');
     }
-  });
-});
+  });});
 
 function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(tab==='login'&&i===0)||(tab==='create'&&i===1)));
@@ -363,7 +369,7 @@ async function login(){
   const email=name+'@listing-lists.local';
   try{
     console.log('📧 Logging in as:', email);
-    await auth.signInWithEmailAndPassword(email,pass);
+    await signInWithEmailAndPassword(auth,email,pass);
     console.log('✅ Login successful');
   }catch(e){
     console.error('❌ Login error:', e);
@@ -377,11 +383,11 @@ async function createFamily(){
   const email=name+'@listing-lists.local';
   try{
     console.log('👨‍👩‍👧‍👦 Creating family:', name);
-    const res=await auth.createUserWithEmailAndPassword(email,pass);
+    const res=await createUserWithEmailAndPassword(auth,email,pass);
     console.log('✅ User created:', res.user.uid);
     const DEFAULT_CATS=['Produce','Dairy','Meat','Bakery','Frozen','Snacks','Drinks','Household','Other'];
     console.log('💾 Creating family document...');
-    await db.collection('families').doc(name).set({owner:res.user.uid,members:[res.user.uid],categoryOrder:DEFAULT_CATS,createdAt:new Date()});
+    await setDoc(doc(db,'families',name),{owner:res.user.uid,members:[res.user.uid],categoryOrder:DEFAULT_CATS,createdAt:new Date()});
     console.log('✅ Family created');
     localStorage.setItem('ll_family',name);
     familyName=name;
@@ -392,7 +398,7 @@ async function createFamily(){
 }
 
 function logout(){
-  auth.signOut().then(()=>{
+  signOut(auth).then(()=>{
     currentUser=null;
     familyName=null;
     localStorage.removeItem('ll_family');
@@ -412,11 +418,12 @@ function showApp(){
 async function loadItems(){
   try{
     console.log('📥 Loading items for family:', familyName);
-    const snap=await db.collection('families').doc(familyName).collection('items').orderBy('order','asc').get();
+    const q=query(collection(db,'families',familyName,'items'),orderBy('order','asc'));
+    const snap=await getDocs(q);
     items=snap.docs.map(doc=>({id:doc.id,...doc.data()}));
     console.log('✅ Loaded', items.length, 'items');
-    const familySnap=await db.collection('families').doc(familyName).get();
-    if(familySnap.exists&&familySnap.data().categoryOrder){
+    const familySnap=await getDoc(doc(db,'families',familyName));
+    if(familySnap.exists()&&familySnap.data().categoryOrder){
       categoryOrder=familySnap.data().categoryOrder;
       console.log('✅ Categories:', categoryOrder);
     }
@@ -432,7 +439,7 @@ async function addItem(){
   const qty=parseInt(val('add-qty'))||1,category=selectedCat,addedBy=val('add-nick')||'Someone';
   try{
     console.log('➕ Adding item:', name, 'to', category);
-    const docRef=await db.collection('families').doc(familyName).collection('items').add({
+    const docRef=await addDoc(collection(db,'families',familyName,'items'),{
       name,qty,category,addedBy,checked:false,createdAt:new Date(),addedAt:new Date(),order:items.length
     });
     console.log('✅ Item added with ID:', docRef.id);
@@ -458,7 +465,7 @@ function promptAddToCategory(cat){
       const addedBy=val('add-nick')||'Someone';
       closeModal();
       try{
-        await db.collection('families').doc(familyName).collection('items').add({name,qty,category:cat,addedBy,checked:false,createdAt:new Date(),addedAt:new Date(),order:items.length});
+        await addDoc(collection(db,'families',familyName,'items'),{name,qty,category:cat,addedBy,checked:false,createdAt:new Date(),addedAt:new Date(),order:items.length});
         await loadItems();
         toast('Added '+name);
       }catch(e){toast('Failed to add item: '+e.message);}
@@ -472,7 +479,7 @@ async function toggleItem(id){
     const item=items.find(i=>i.id===id);
     if(item){
       const newChecked=!item.checked;
-      await db.collection('families').doc(familyName).collection('items').doc(id).update({checked:newChecked});
+      await updateDoc(doc(db,'families',familyName,'items',id),{checked:newChecked});
       item.checked=newChecked;
       renderItems();
     }
@@ -481,7 +488,7 @@ async function toggleItem(id){
 
 async function deleteItem(id){
   try{
-    await db.collection('families').doc(familyName).collection('items').doc(id).delete();
+    await deleteDoc(doc(db,'families',familyName,'items',id));
     items=items.filter(i=>i.id!==id);
     renderItems();
     toast('Removed');
@@ -492,7 +499,7 @@ async function clearChecked(){
   try{
     const checked=items.filter(i=>i.checked);
     for(const item of checked){
-      await db.collection('families').doc(familyName).collection('items').doc(item.id).delete();
+      await deleteDoc(doc(db,'families',familyName,'items',item.id));
     }
     items=items.filter(i=>!i.checked);
     renderItems();
@@ -533,7 +540,7 @@ function confirmDeleteCategory(cat){
       const affected=items.filter(i=>i.category===cat);
       for(const item of affected){
         try{
-          await db.collection('families').doc(familyName).collection('items').doc(item.id).update({category:'Other'});
+          await updateDoc(doc(db,'families',familyName,'items',item.id),{category:'Other'});
           item.category='Other';
         }catch(e){console.error(e);}
       }
@@ -579,7 +586,7 @@ function makeDraggable(card,item){
     moved.category=item.category;
     items.splice(toIdx,0,moved);
     renderItems();saveItemOrder();
-    if(moved.category!==oldCat)db.collection('families').doc(familyName).collection('items').doc(moved.id).update({category:moved.category}).catch(()=>{});
+    if(moved.category!==oldCat)updateDoc(doc(db,'families',familyName,'items',moved.id),{category:moved.category}).catch(()=>{});
   });
 }
 function makeCatDropTarget(groupEl,cat){
@@ -594,13 +601,13 @@ function makeCatDropTarget(groupEl,cat){
     moved.category=cat;
     items.push(moved);
     renderItems();saveItemOrder();
-    if(moved.category!==oldCat)db.collection('families').doc(familyName).collection('items').doc(moved.id).update({category:moved.category}).catch(()=>{});
+    if(moved.category!==oldCat)updateDoc(doc(db,'families',familyName,'items',moved.id),{category:moved.category}).catch(()=>{});
   });
 }
 async function saveItemOrder(){
   for(let i=0;i<items.length;i++){
     try{
-      await db.collection('families').doc(familyName).collection('items').doc(items[i].id).update({order:i});
+      await updateDoc(doc(db,'families',familyName,'items',items[i].id),{order:i});
     }catch(e){console.error(e);}
   }
 }
