@@ -329,17 +329,20 @@ window.addEventListener('load',()=>{
   loadNick();
   buildCatDropdown();
   document.getElementById('cat-btn-label').textContent=selectedCat;
-});
-
-auth.onAuthStateChanged(async(user)=>{
-  if(user){
-    currentUser=user;
-    familyName=localStorage.getItem('ll_family')||user.uid;
-    showApp();
-    await loadItems();
-  }else{
-    hide('loading');
-  }
+  
+  // Setup auth listener
+  auth.onAuthStateChanged(async(user)=>{
+    if(user){
+      currentUser=user;
+      familyName=localStorage.getItem('ll_family')||user.uid;
+      showApp();
+      await loadItems();
+    }else{
+      hide('loading');
+      document.getElementById('auth-screen').classList.add('active');
+      document.getElementById('app-screen').classList.remove('active');
+    }
+  });
 });
 
 function switchTab(tab){
