@@ -349,19 +349,16 @@ window.addEventListener('load',()=>{
   // Setup auth listener
   auth.onAuthStateChanged(async(user)=>{
     console.log('🔐 Auth state changed:', user?.isAnonymous ? 'anonymous' : 'not logged in');
-    if(user){
+    if(user&&familyName){
       currentUser=user;
-      familyName=localStorage.getItem('ll_family');
-      if(familyName){
-        console.log('👤 User logged in, Family:', familyName);
-        showApp();
-        await loadItems();
-      }else{
-        console.log('👤 Anon user but no family selected');
-        hide('loading');
-        document.getElementById('auth-screen').classList.add('active');
-        document.getElementById('app-screen').classList.remove('active');
-      }
+      console.log('👤 User logged in, Family:', familyName);
+      showApp();
+      await loadItems();
+    }else if(user&&!familyName){
+      console.log('👤 Anon user but no family selected');
+      hide('loading');
+      document.getElementById('auth-screen').classList.add('active');
+      document.getElementById('app-screen').classList.remove('active');
     }else{
       console.log('👤 No user logged in');
       hide('loading');
@@ -397,8 +394,10 @@ async function login(){
       return;
     }
     console.log('✅ Passcode correct');
+    // Set family name AFTER verification
     localStorage.setItem('ll_family',name);
     familyName=name;
+    console.log('✅ Family name stored:', familyName);
   }catch(e){
     console.error('❌ Login error:', e);
     showError('login-error',e.message);
@@ -422,8 +421,10 @@ async function createFamily(){
       createdAt:new Date()
     });
     console.log('✅ Family created');
+    // Set family name AFTER successful creation
     localStorage.setItem('ll_family',name);
     familyName=name;
+    console.log('✅ Family name stored:', familyName);
   }catch(e){
     console.error('❌ Create error:', e);
     showError('create-error',e.message);
