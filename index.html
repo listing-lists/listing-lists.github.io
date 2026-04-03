@@ -244,9 +244,12 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
 <script>
 // ── Firebase Config & Init ───────────────────────────────────────────────────
 const firebaseConfig={apiKey:"AIzaSyDFChem-HuTxBmbVvope73X_eQbUd9ngbM",authDomain:"listing-lists.firebaseapp.com",projectId:"listing-lists",storageBucket:"listing-lists.firebasestorage.app",messagingSenderId:"1041641242612",appId:"1:1041641242612:web:7f40506f0cb3b15e8383a1",measurementId:"G-SFEXGEHVJ9"};
+console.log('🔧 Initializing Firebase...');
 firebase.initializeApp(firebaseConfig);
+console.log('✅ Firebase initialized');
 const auth=firebase.auth();
 const db=firebase.firestore();
+console.log('✅ Auth and Firestore ready');
 
 let currentUser=null,familyName=null,items=[],activeFilter="all";
 
@@ -332,12 +335,15 @@ window.addEventListener('load',()=>{
   
   // Setup auth listener
   auth.onAuthStateChanged(async(user)=>{
+    console.log('🔐 Auth state changed:', user?.email || 'not logged in');
     if(user){
       currentUser=user;
       familyName=localStorage.getItem('ll_family')||user.uid;
+      console.log('👤 User logged in:', user.email, 'Family:', familyName);
       showApp();
       await loadItems();
     }else{
+      console.log('👤 No user logged in');
       hide('loading');
       document.getElementById('auth-screen').classList.add('active');
       document.getElementById('app-screen').classList.remove('active');
@@ -356,8 +362,13 @@ async function login(){
   if(!name||!pass)return showError('login-error','Fill in all fields');
   const email=name+'@listing-lists.local';
   try{
+    console.log('📧 Logging in as:', email);
     await auth.signInWithEmailAndPassword(email,pass);
-  }catch(e){showError('login-error',e.message);}
+    console.log('✅ Login successful');
+  }catch(e){
+    console.error('❌ Login error:', e);
+    showError('login-error',e.message);
+  }
 }
 
 async function createFamily(){
@@ -365,12 +376,19 @@ async function createFamily(){
   if(!name||!pass)return showError('create-error','Fill in all fields');
   const email=name+'@listing-lists.local';
   try{
+    console.log('👨‍👩‍👧‍👦 Creating family:', name);
     const res=await auth.createUserWithEmailAndPassword(email,pass);
+    console.log('✅ User created:', res.user.uid);
     const DEFAULT_CATS=['Produce','Dairy','Meat','Bakery','Frozen','Snacks','Drinks','Household','Other'];
+    console.log('💾 Creating family document...');
     await db.collection('families').doc(name).set({owner:res.user.uid,members:[res.user.uid],categoryOrder:DEFAULT_CATS,createdAt:new Date()});
+    console.log('✅ Family created');
     localStorage.setItem('ll_family',name);
     familyName=name;
-  }catch(e){showError('create-error',e.message);}
+  }catch(e){
+    console.error('❌ Create error:', e);
+    showError('create-error',e.message);
+  }
 }
 
 function logout(){
@@ -393,14 +411,19 @@ function showApp(){
 
 async function loadItems(){
   try{
+    console.log('📥 Loading items for family:', familyName);
     const snap=await db.collection('families').doc(familyName).collection('items').orderBy('order','asc').get();
     items=snap.docs.map(doc=>({id:doc.id,...doc.data()}));
+    console.log('✅ Loaded', items.length, 'items');
     const familySnap=await db.collection('families').doc(familyName).get();
     if(familySnap.exists&&familySnap.data().categoryOrder){
       categoryOrder=familySnap.data().categoryOrder;
+      console.log('✅ Categories:', categoryOrder);
     }
     renderItems();
-  }catch(e){console.error('Error loading items:',e);}
+  }catch(e){
+    console.error('❌ Error loading items:', e);
+  }
 }
 
 async function addItem(){
@@ -408,15 +431,20 @@ async function addItem(){
   if(!name)return;
   const qty=parseInt(val('add-qty'))||1,category=selectedCat,addedBy=val('add-nick')||'Someone';
   try{
+    console.log('➕ Adding item:', name, 'to', category);
     const docRef=await db.collection('families').doc(familyName).collection('items').add({
       name,qty,category,addedBy,checked:false,createdAt:new Date(),addedAt:new Date(),order:items.length
     });
+    console.log('✅ Item added with ID:', docRef.id);
     items.push({id:docRef.id,name,qty,category,addedBy,checked:false,createdAt:new Date(),addedAt:new Date()});
     document.getElementById('add-item').value='';
     document.getElementById('add-qty').value=1;
     if(!categoryOrder.includes(category)){categoryOrder.push(category);saveCatOrder();}
     buildCatDropdown();renderItems();toast('Added '+name);
-  }catch(e){toast('Failed to add item: '+e.message);}
+  }catch(e){
+    console.error('❌ Failed to add item:', e);
+    toast('Failed to add item: '+e.message);
+  }
 }
 
 function promptAddToCategory(cat){
