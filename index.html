@@ -384,7 +384,7 @@ async function login(){
     
     // Check if family exists and passcode matches
     const familySnap=await db.collection('families').doc(name).get();
-    if(!familySnap.exists()){
+    if(!familySnap.exists){
       showError('login-error','Family not found');
       return;
     }
@@ -456,7 +456,7 @@ async function loadItems(){
     items=snap.docs.map(doc=>({id:doc.id,...doc.data()}));
     console.log('✅ Loaded', items.length, 'items');
     const familySnap=await db.collection('families').doc(familyName).get();
-    if(familySnap.exists()&&familySnap.data().categoryOrder){
+    if(familySnap.exists&&familySnap.data().categoryOrder){
       categoryOrder=familySnap.data().categoryOrder;
       console.log('✅ Categories:', categoryOrder);
     }
