@@ -1,4 +1,9 @@
-<!DOCTYPE html>
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    allow read, write;
+  }
+}<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -398,6 +403,9 @@ async function login(){
     localStorage.setItem('ll_family',name);
     familyName=name;
     console.log('✅ Family name stored:', familyName);
+    // Show app and load items
+    showApp();
+    await loadItems();
   }catch(e){
     console.error('❌ Login error:', e);
     showError('login-error',e.message);
