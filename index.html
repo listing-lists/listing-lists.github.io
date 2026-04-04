@@ -120,10 +120,15 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
 .item-check:hover{border-color:var(--green)}
 .item-card.checked .item-check{background:var(--green);border-color:var(--green);color:white}
 .item-info{flex:1;min-width:0}
+.item-name-row{display:flex;align-items:center;gap:8px}
 .item-name{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-qty-inline{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;flex-shrink:0}
 .item-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:8px}
 .item-qty-badge{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px 10px;font-size:12px;color:var(--accent2);font-weight:500;flex-shrink:0}
-.item-delete{width:30px;height:30px;background:none;border:none;color:var(--muted);cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s;font-size:15px}
+.item-action-btn{width:24px;height:24px;background:none;border:none;color:var(--muted);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s;font-size:14px;padding:0}
+.item-card:hover .item-action-btn{opacity:1}
+.item-action-btn:hover{color:var(--text);background:rgba(255,255,255,.08)}
+.item-delete{width:24px;height:24px;background:none;border:none;color:var(--muted);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s;font-size:14px;padding:0}
 .item-card:hover .item-delete{opacity:1}
 .item-delete:hover{background:rgba(255,80,80,.15);color:#ff8080}
 .empty-state{text-align:center;padding:60px 20px;display:none}
@@ -195,7 +200,7 @@ body::after{content:'';position:fixed;bottom:-20%;left:-10%;width:500px;height:5
   <div class="list-content">
     <div class="filter-row" id="filter-row">
       <button class="filter-chip active" data-cat="all" onclick="setFilter('all')">All</button>
-      <button class="clear-checked-btn" onclick="clearChecked()">Clear checked</button>
+      <button class="clear-checked-btn" onclick="confirmClearChecked()">Clear checked</button>
     </div>
     <div id="items-list"></div>
     <div class="empty-state" id="empty-state">
@@ -542,6 +547,15 @@ async function clearChecked(){
   }catch(e){console.error('Error clearing checked:',e);}
 }
 
+function confirmClearChecked(){
+  const count=items.filter(i=>i.checked).length;
+  if(count===0){toast('No checked items to clear');return;}
+  openModal('Clear '+count+' item'+(count===1?'':'s')+'?',
+    '<p style="color:var(--muted);font-size:14px">Are you sure you want to delete all checked items?</p>',
+    clearChecked
+  );
+}
+
 async function refreshList(){
   const btn=document.getElementById('refresh-btn');
   btn.classList.add('spinning');
@@ -647,6 +661,60 @@ async function saveItemOrder(){
   }
 }
 
+function editItem(id){
+  const item=items.find(i=>i.id===id);
+  if(!item)return;
+  openModal('Edit Item',
+    '<div class="modal-group"><label class="modal-label">Item Name</label><input class="modal-input" id="edit-item-name" value="'+esc(item.name)+'"/></div>',
+    async ()=>{
+      const name=document.getElementById('edit-item-name').value.trim();
+      if(!name){showError('modal-body','Name cannot be empty');return;}
+      try{
+        await db.collection('families').doc(familyName).collection('items').doc(id).update({name});
+        item.name=name;
+        renderItems();
+        closeModal();
+        toast('Item renamed');
+      }catch(e){console.error(e);showError('modal-body',e.message);}
+    }
+  );
+  setTimeout(()=>document.getElementById('edit-item-name')?.select(),50);
+}
+
+function editQty(id){
+  const item=items.find(i=>i.id===id);
+  if(!item)return;
+  openModal('Edit Quantity',
+    '<div class="modal-group"><label class="modal-label">Quantity</label><input class="modal-input" id="edit-qty" type="number" min="1" value="'+item.qty+'"/></div>',
+    async ()=>{
+      const qty=parseInt(document.getElementById('edit-qty').value);
+      if(isNaN(qty)||qty<1){showError('modal-body','Quantity must be at least 1');return;}
+      try{
+        await db.collection('families').doc(familyName).collection('items').doc(id).update({qty});
+        item.qty=qty;
+        renderItems();
+        closeModal();
+        toast('Quantity updated');
+      }catch(e){console.error(e);showError('modal-body',e.message);}
+    }
+  );
+  setTimeout(()=>document.getElementById('edit-qty')?.select(),50);
+}
+
+async function toggleCategory(cat){
+  const catItems=items.filter(i=>i.category===cat);
+  const allChecked=catItems.every(i=>i.checked);
+  const newChecked=!allChecked;
+  try{
+    for(const item of catItems){
+      await db.collection('families').doc(familyName).collection('items').doc(item.id).update({checked:newChecked});
+      item.checked=newChecked;
+    }
+    renderItems();
+  }catch(e){console.error('Error toggling category:',e);}
+}
+
+
 function renderItems(){
   const filtered=activeFilter==='all'?items:items.filter(i=>i.category===activeFilter);
   document.getElementById('stat-total').textContent=items.length;
@@ -688,8 +756,12 @@ function renderItems(){
     const header=document.createElement('div');
     header.className='category-label';
     const escapedCat=esc(cat);
+    const allCatChecked=sorted.every(i=>i.checked);
     header.innerHTML=
-      '<div class="category-label-text">'+catEmoji(cat)+' '+escapedCat+'</div>'+
+      '<div class="category-label-text">'+
+        '<button class="cat-check" title="Check all" style="margin-right:4px;border:none;background:none;color:var(--text);cursor:pointer;font-size:14px" onclick="toggleCategory(\u0027'+escapedCat+'\u0027)">'+(allCatChecked?'☑':'☐')+'</button>'+
+        catEmoji(cat)+' '+escapedCat+
+      '</div>'+
       '<div class="cat-actions">'+
       '<button class="cat-btn" title="Add item" onclick="promptAddToCategory(\u0027'+escapedCat+'\u0027)">'+
         '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>'+
@@ -711,10 +783,15 @@ function renderItems(){
       card.dataset.id=item.id;
       const check=document.createElement('div');check.className='item-check';if(item.checked)check.textContent='\u2713';check.onclick=()=>toggleItem(item.id);
       const info=document.createElement('div');info.className='item-info';
-      info.innerHTML='<div class="item-name">'+esc(item.name)+'</div><div class="item-meta"><span>by '+esc(item.addedBy)+'</span><span>'+timeAgo(item.addedAt)+'</span></div>';
-      const qty=document.createElement('div');qty.className='item-qty-badge';qty.textContent='\xD7'+item.qty;
+      const nameDiv=document.createElement('div');nameDiv.className='item-name-row';
+      nameDiv.innerHTML='<span class="item-name">'+esc(item.name)+'</span><span class="item-qty-inline">\xD7'+item.qty+'</span>';
+      const metaDiv=document.createElement('div');metaDiv.className='item-meta';
+      metaDiv.innerHTML='<span>by '+esc(item.addedBy)+'</span><span>'+timeAgo(item.addedAt)+'</span>';
+      info.appendChild(nameDiv);info.appendChild(metaDiv);
+      const edit=document.createElement('button');edit.className='item-action-btn';edit.innerHTML='✎';edit.title='Edit';edit.onclick=()=>editItem(item.id);
+      const qty=document.createElement('button');qty.className='item-action-btn';qty.innerHTML='⚙';qty.title='Edit qty';qty.onclick=()=>editQty(item.id);
       const del=document.createElement('button');del.className='item-delete';del.innerHTML='\u2715';del.onclick=()=>deleteItem(item.id);
-      card.appendChild(check);card.appendChild(info);card.appendChild(qty);card.appendChild(del);
+      card.appendChild(check);card.appendChild(info);card.appendChild(edit);card.appendChild(qty);card.appendChild(del);
       makeDraggable(card,item);
       group.appendChild(card);
     });
